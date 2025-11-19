@@ -1,239 +1,228 @@
-
-
-from utils.utils import print_json
+# main_redis.py
 from utils.redis_client import RedisClient
-from utils.sql_client import SQLClient
+import json
+from collections import defaultdict
 
-rdb = RedisClient()
-sql = SQLClient(host="localhost", user="root", password="root", database="gestion_practicas")
+# -------------------------------
+# Inicialización
+# -------------------------------
+redis_client = RedisClient()
+print("\n--- Conexión a Redis establecida ---\n")
 
-# ----------------------
-# Punto 1: Crear registros clave-valor
-# ----------------------
-def punto1_crear_registros():
-    # Insertamos un estudiante de ejemplo
-    key = "estudiante:999"
-    value = {
-        "id": 999,
-        "nombre": "Alumno Ejemplo",
-        "dni": "00000000X",
-        "correo": "alumno@ejemplo.com",
-        "centro_id": 1,
-        "titulacion": "FP Desarrollo",
-        "curso": "2025"
-    }
-    rdb.set(key, value)
-    print("Punto 1: Registro creado")
-    print_json(rdb.get(key))
+# -------------------------------
+# 1. Crear registros clave-valor
+# Redis permite acceso rápido a datos individuales ideal para guardar información frecuente.
+# -------------------------------
+# redis_client.set("student:101:name", "Laura Gómez")
+# redis_client.set("student:101:hours", 35)
+# redis_client.set("student:102:name", "Carlos M.")
+# redis_client.set("student:102:hours", 40)
+# redis_client.set("student:103:name", "Ana P.")
+# redis_client.set("student:103:hours", 30)
 
-# ----------------------
-# Punto 2: Obtener y mostrar número de claves registradas
-# ----------------------
-def punto2_numero_claves():
-    count = len(rdb.keys("*"))
-    print(f"Punto 2: Número de claves en Redis = {count}")
+redis_client.set("student:101",  {
+    "id_estudiante": 101,
+    "dni": "12345678A",
+    "nombre": "Laura Gómez",
+    "fecha_nacimiento": "2002-05-10",
+    "id_centro": 1,
+    "titulacion": "DAW",
+    "curso_academico": "2025",
+    "hours": 35
+})
 
-# ----------------------
-# Punto 3: Obtener un registro por clave
-# ----------------------
-def punto3_obtener_por_clave():
-    key = "estudiante:999"
-    print("Punto 3: Registro obtenido")
-    print_json(rdb.get(key))
+redis_client.set("student:102", {
+    "id_estudiante": 102,
+    "dni": "12345678B",
+    "nombre": "Carlos M.",
+    "fecha_nacimiento": "2001-08-20",
+    "id_centro": 1,
+    "titulacion": "DAM",
+    "curso_academico": "2025",
+    "hours": 40
+})
 
-# ----------------------
-# Punto 4: Actualizar valor de una clave y mostrar
-# ----------------------
-def punto4_actualizar_valor():
-    key = "estudiante:999"
-    value = rdb.get(key)
-    value["correo"] = "nuevo@correo.com"
-    rdb.set(key, value)
-    print("Punto 4: Registro actualizado")
-    print_json(rdb.get(key))
+redis_client.set("student:103", {
+    "id_estudiante": 103,
+    "dni": "12345678C",
+    "nombre": "Ana P.",
+    "fecha_nacimiento": "2003-02-15",
+    "id_centro": 2,
+    "titulacion": "DAW",
+    "curso_academico": "2025",
+    "hours": 30
+})
+print("1. Claves creadas: student:101, student:102, student:103\n")
 
-# ----------------------
-# Punto 5: Eliminar clave-valor y mostrar
-# ----------------------
-def punto5_eliminar_clave():
-    key = "estudiante:999"
-    value = rdb.delete(key)
-    print(f"Punto 5: Registro eliminado -> {key}: {value}")
+# -------------------------------
+# 2. Obtener número de claves
+# Permite auditar y verificar la cantidad de registros almacenados.
+# -------------------------------
+all_keys = redis_client.keys("*")
+print(f"2. Total de claves: {len(all_keys)}\n")
 
-# ----------------------
-# Punto 6: Obtener todas las claves
-# ----------------------
-def punto6_todas_claves():
-    keys = rdb.keys("*")
-    print("Punto 6: Todas las claves")
-    print_json(keys)
+# -------------------------------
+# 3. Obtener un registro por clave
+# Recuperar rápidamente datos de un estudiante concreto usando la clave.
+# -------------------------------
+value = redis_client.get("student:101:name")
+print(f"3. Valor: {value}\n")
 
-# ----------------------
-# Punto 7: Obtener todos los valores
-# ----------------------
-def punto7_todos_valores():
-    keys = [k for k in rdb.keys("*") if rdb.type(k) == "string"]
-    values = rdb.mget(keys)
-    print("Punto 7: Todos los valores")
-    print_json(values)
+# -------------------------------
+# 4. Actualizar valor de una clave
+# Redis permite modificar valores existentes de forma inmediata.
+# -------------------------------
+redis_client.set("student:101:name", "Laura G.")
+new_value = redis_client.get("student:101:name")
+print(f"4. Nuevo valor: {new_value}\n")
 
-# ----------------------
-# Punto 8-10: Obtener registros con patrones
-# ----------------------
-def punto8_patron_asterisco():
-    keys = rdb.keys("estudiante:*")
-    print("Punto 8 (*):")
-    print_json(rdb.mget(keys))
+# -------------------------------
+# 5. Eliminar una clave-valor
+# Limpieza de datos obsoletos o irrelevantes.
+# -------------------------------
+deleted_value = redis_client.delete("student:103:name")
+print(f"5. Clave eliminada: student:103:name, valor eliminado: {deleted_value}\n")
 
-def punto9_patron_corchetes():
-    # Ejemplo: claves estudiante:9[9,8]*
-    keys = rdb.keys("estudiante:9[0-9]*")
-    print("Punto 9 ([]):")
-    print_json(rdb.mget(keys))
+# -------------------------------
+# 6. Mostrar todas las claves
+# Útil para inspección y debugging.
+# -------------------------------
+all_keys = redis_client.keys("*")
+print(f"6. {all_keys}, \n")
 
-def punto10_patron_interrogacion():
-    # Ejemplo: estudiante:99?
-    keys = rdb.keys("estudiante:99?")
-    print("Punto 10 (?):")
-    print_json(rdb.mget(keys))
+# -------------------------------
+# 7. Mostrar todos los valores
+# Permite obtener datos completos para análisis o informes.
+# -------------------------------
+string_keys = [k for k in redis_client.keys("*") if redis_client.type(k) == "string"]
+all_values = redis_client.mget(string_keys)
+print(f"7. {all_values}, \n")
 
-# ----------------------
-# Punto 11: Filtrar por valor
-# ----------------------
-def punto11_filtrar_por_valor():
-    keys = rdb.keys("estudiante:*")
-    alumnos = [rdb.get(k) for k in keys if rdb.get(k)["centro_id"] == 1]
-    print("Punto 11: Filtrados por centro_id=1")
-    print_json(alumnos)
+# -------------------------------
+# 8. Obtener varios registros con patrón *
+# Búsqueda por patrón de clave, útil para manejar grupos de datos relacionados.
+# -------------------------------
+keys_pattern = redis_client.keys("student:101:*")
+keys_string = [k for k in keys_pattern if redis_client.type(k) == "string"]
+values_pattern = redis_client.mget(keys_string)
+print(f"8. Claves: {keys_string}\nValores: {values_pattern}\n")
 
-# ----------------------
-# Punto 12: Actualizar una serie de registros por filtro
-# ----------------------
-def punto12_actualizar_serie():
-    keys = rdb.keys("estudiante:*")
-    for k in keys:
-        val = rdb.get(k)
-        val["curso"] = "2026"
-        rdb.set(k, val)
-    print("Punto 12: Curso actualizado a 2026")
-    punto7_todos_valores()
+# -------------------------------
+# 9. Obtener varios registros con patrón []
+# Filtrar subconjuntos exactos de datos sin recorrer todo el dataset.
+# -------------------------------
+keys_pattern = redis_client.keys("student:10[1-2]:name")
+values_pattern = redis_client.mget(keys_pattern)
+print(f"9. Claves: {keys_pattern}\nValores: {values_pattern}\n")
 
-# ----------------------
-# Punto 13: Eliminar serie de registros por filtro
-# ----------------------
-def punto13_eliminar_serie():
-    keys = rdb.keys("estudiante:*")
-    for k in keys:
-        val = rdb.delete(k)
-    print("Punto 13: Serie de registros eliminados")
-    punto6_todas_claves()
+# -------------------------------
+# 10. Obtener varios registros con patrón ?
+# Búsquedas flexibles y precisas en claves.
+# -------------------------------
+keys_pattern = redis_client.keys("student:10?:hours")
+values_pattern = redis_client.mget(keys_pattern)
+print(f"10. Claves: {keys_pattern}\nValores: {values_pattern}\n")
 
-# ----------------------
-# Punto 14: Crear estructura JSON de array de datos
-# ----------------------
-def punto14_json_array():
-    array = []
-    keys = rdb.keys("empresa:*")
-    for k in keys:
-        array.append(rdb.get(k))
-    print("Punto 14: JSON array de empresas")
-    print_json(array)
+# -------------------------------
+# 11. Filtrar registros por valor
+# Consultas rápidas en memoria, ejemplo: estudiantes con ≥35 horas.
+# -------------------------------
+keys_hours = redis_client.keys("student:*:hours")
+filtered_students = []
+for k in keys_hours:
+    v = int(redis_client.get(k))
+    if v >= 35:
+        filtered_students.append((k, v))
+print(f"11. {filtered_students}, \n")
 
-# ----------------------
-# Punto 15: Filtrar por cada atributo de JSON
-# ----------------------
-def punto15_filtrar_json():
-    array = [rdb.get(k) for k in rdb.keys("empresa:*")]
-    filtrado = [e for e in array if e.get("satisfaccion",0) >= 4.0]
-    print("Punto 15: Empresas con satisfacción >= 4.0")
-    print_json(filtrado)
+# -------------------------------
+# 12. Actualizar varios registros por filtro
+# Redis permite operaciones masivas eficientes, como incrementar horas para ciertos estudiantes.
+# -------------------------------
+for k, v in filtered_students:
+    if v < 40:
+        redis_client.set(k, v + 1)
+updated_values = [(k, redis_client.get(k)) for k, v in filtered_students]
+print(f"12. {updated_values}, \n")
 
-# ----------------------
-# Punto 16: Crear una lista en Redis
-# ----------------------
-def punto16_lista_redis():
-    rdb.rpush("practicas:pendientes", "practica:1", "practica:2")
-    print("Punto 16: Lista de prácticas pendientes creada")
-    print_json(rdb.lrange("practicas:pendientes"))
+# -------------------------------
+# 13. Eliminar registros por filtro
+# Limpieza selectiva de registros que cumplen condiciones específicas.
+# -------------------------------
+print("13:")
+for k in keys_hours:
+    if int(redis_client.get(k)) <= 36:
+        deleted = redis_client.delete(k)
+        print(f"Eliminado {k}: {deleted}")
+print("")
 
-# ----------------------
-# Punto 17: Obtener elementos de lista con filtro
-# ----------------------
-def punto17_lista_filtrada():
-    # Obtenemos todos los elementos de la lista "practicas:pendientes"
-    lista = rdb.lrange("practicas:pendientes", 0, -1)
-    # Filtramos los elementos que contengan '1'
-    filtrada = [p for p in lista if "1" in p]
-    print("Punto 17: Filtrada lista prácticas con '1'")
-    print_json(filtrada)
+# -------------------------------
+# 14. Crear estructura JSON
+# Guardar objetos complejos en Redis para consultas ricas sin desnormalizar.
+# -------------------------------
+students_json = [
+    {"id":101, "nombre":"Laura G.", "curso":"DAW", "hours":36},
+    {"id":102, "nombre":"Carlos M.", "curso":"DAM", "hours":41}
+]
+redis_client.delete("students")
+redis_client.set("students", students_json)
+print("14. JSON guardado en Redis\n")
 
-# ----------------------
-# Punto 18: Crear datos con índices (simulado con sets)
-# ----------------------
-def punto18_datos_indices():
-    keys = rdb.keys("estudiante:*")
-    if keys:  # solo si hay elementos
-        rdb.sadd("set:estudiantes_por_curso:2025", *keys)
-    print("Punto 18: Índices por curso 2025 creados")
-    miembros = list(rdb.smembers("set:estudiantes_por_curso:2025")) if keys else []
-    print_json(miembros)
+# -------------------------------
+# 15. Filtrar JSON por atributo
+# Consultas basadas en atributos internos sin SQL.
+# -------------------------------
+stored_students = redis_client.get("students")
+filtered = [s for s in stored_students if s["curso"]=="DAW"]
+print(f"15. {filtered}, \n")
 
-# ----------------------
-# Punto 19: Búsqueda con índices
-# ----------------------
-def punto19_busqueda_indices():
-    # Obtenemos los alumnos del curso 2025 usando el set (índice)
-    alumnos = list(rdb.smembers("set:estudiantes_por_curso:2025"))
-    print("Punto 19: Alumnos curso 2025 usando índice")
-    print_json(alumnos)
+# -------------------------------
+# 16. Crear lista en Redis
+# Redis maneja listas ordenadas (queues, logs, actividades) eficientemente.
+# -------------------------------
+redis_client.rpush("student:101:activities", "Entrega informe 1", "Sesion tutoría")
+print("16. Lista creada\n")
 
-# ----------------------
-# Punto 20: Group by usando índices
-# ----------------------
-def punto20_group_by():
-    # Agrupamos todos los estudiantes por su centro_id
-    keys = rdb.keys("estudiante:*")
-    group = {}
-    for k in keys:
-        val = rdb.get(k)
-        if val:  # Verificamos que el valor exista
-            cid = val.get("centro_id")
-            if cid not in group:
-                group[cid] = []
-            group[cid].append(val)
-    print("Punto 20: Agrupación por centro_id")
-    print_json(group)
+# -------------------------------
+# 17. Obtener elementos de lista con filtro
+# Buscar elementos dentro de la lista, útil para dashboards o notificaciones.
+# -------------------------------
+activities = redis_client.lrange("student:101:activities")
+filtered_activities = [a for a in activities if "informe" in a]
+print(f"17. {filtered_activities}, \n")
 
+# -------------------------------
+# 18. Crear datos con índices (JSON)
+# Guardar con índice único facilita búsquedas rápidas por id.
+# -------------------------------
+redis_client.delete("student:104")
+student_104 = {"id":104, "nombre":"Marta L.", "hours":25}
+redis_client.set("student:104", student_104)
+print("18. JSON con índice creado\n")
 
-# ----------------------
-# Menú interactivo para probar
-# ----------------------
-def menu():
-    funciones = [
-        punto1_crear_registros,
-        punto2_numero_claves,
-        punto3_obtener_por_clave,
-        punto4_actualizar_valor,
-        punto5_eliminar_clave,
-        punto6_todas_claves,
-        punto7_todos_valores,
-        punto8_patron_asterisco,
-        punto9_patron_corchetes,
-        punto10_patron_interrogacion,
-        punto11_filtrar_por_valor,
-        punto12_actualizar_serie,
-        punto13_eliminar_serie,
-        punto14_json_array,
-        punto15_filtrar_json,
-        punto16_lista_redis,
-        punto17_lista_filtrada,
-        punto18_datos_indices,
-        punto19_busqueda_indices,
-        punto20_group_by
-    ]
-    for i, f in enumerate(funciones,1):
-        print(f"\n==== Ejecutando Punto {i} ====")
-        f()
+# -------------------------------
+# 19. Buscar por índice (nombre)
+# Redis no tiene índices secundarios nativos, pero se puede filtrar por valor para simular búsquedas.
+# -------------------------------
+keys_student = redis_client.keys("student:*")
+keys_string = [k for k in keys_student if redis_client.type(k) == "string"]
+found = []
+print("19:")
+for k in keys_string:
+    val = redis_client.get(k)
+    if val == "Carlos M.":
+        found.append((k,val))
+print(found, "\n")
 
-if __name__ == "__main__":
-    menu()
+# -------------------------------
+# 20. Group by usando índice (curso)
+# Agrupar objetos JSON por atributo permite análisis tipo "reporting" directamente en memoria.
+# -------------------------------
+students_all = redis_client.get("students")
+grouped = defaultdict(list)
+for s in students_all:
+    grouped[s["curso"]].append(s)
+for curso, lista in grouped.items():
+    print(f"20. Curso {curso}: {lista}")
+
+print("\n--- Fin de ejecución de funcionalidades 1-20 ---")

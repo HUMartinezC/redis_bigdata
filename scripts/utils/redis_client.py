@@ -9,9 +9,10 @@ class RedisClient:
     # Operaciones CRUD Reutilizables
     # -------------------------------
     def set(self, key, value):
-        if isinstance(value, dict):
+        if isinstance(value, (dict, list)):
             value = json.dumps(value)
         self.r.set(key, value)
+
 
     def get(self, key):
         value = self.r.get(key)
@@ -53,3 +54,7 @@ class RedisClient:
 
     def smembers(self, key):
         return self.r.smembers(key)
+    
+    # ---------- Limpiar toda la DB ----------
+    def flushdb(self):
+        self.r.flushdb()
