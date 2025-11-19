@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+redis/
+venv/
+env/
+.venv/
+ENV/
+
+# Redis persistencia local
+dump.rdb
+appendonly.aof
+
+# Logs y temporales
+*.log
+*.tmp
+*.bak
+
+# Configuración sensible
+*.env
+config.py
+
+# Bases de datos locales
+*.sqlite3
+*.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
