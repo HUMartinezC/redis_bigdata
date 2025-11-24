@@ -9,6 +9,10 @@ from collections import defaultdict
 redis_client = RedisClient()
 print("\n--- Conexión a Redis establecida ---\n")
 
+# Limpiar BD
+
+redis_client.flushdb
+
 # -------------------------------
 # 1. Crear registros clave-valor
 # Redis permite acceso rápido a datos individuales ideal para guardar información frecuente.
@@ -150,8 +154,17 @@ print(f"12. {updated_values}, \n")
 # Limpieza selectiva de registros que cumplen condiciones específicas.
 # -------------------------------
 print("13:")
-for k in keys_hours:
-    if int(redis_client.get(k)) <= 36:
+student_keys = [k for k in redis_client.keys("student:*") if redis_client.type(k) == "string"]
+
+for k in student_keys:
+    student = redis_client.get(k)
+    if isinstance(student, str):
+        try:
+            student = json.loads(student)
+        except:
+            continue  # si no es JSON válido, saltar
+
+    if isinstance(student, dict) and student.get("hours", 0) <= 36:
         deleted = redis_client.delete(k)
         print(f"Eliminado {k}: {deleted}")
 print("")
