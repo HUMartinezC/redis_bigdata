@@ -13,12 +13,10 @@ sql = SQLClient(
     host="localhost", user="root", password="root", database="gestion_practicas"
 )
 
-print("\n--- Conexión a Redis y MySQL establecida ---\n")
-
 # -------------------------------
 # 21. Obtener datos de MySQL e incluirlos en Redis
 # -------------------------------
-print("21. Traer estudiantes de MySQL e insertar en Redis")
+print("21. Traer estudiantes de MySQL e insertar en Redis \n")
 
 students = sql.fetchall(
     """
@@ -46,13 +44,10 @@ for s in students:
     redis_client.set(key, value)
     print(f"Guardado en Redis -> {key}: {value}")
 
-print("\nDatos de MySQL insertados en Redis\n")
-
 # -------------------------------
 # 22. Leer datos de Redis e insertar/actualizar en MySQL
 # -------------------------------
-print("22. Leer estudiantes de Redis e insertar/actualizar en MySQL")
-
+print("\n22. Leer estudiantes de Redis e insertar/actualizar en MySQL\n")
 
 student_keys = [k for k in redis_client.keys("student:*") 
                 if redis_client.type(k) == "string" and ":" not in k.split(":", 1)[1]]
